@@ -1,0 +1,23 @@
+apiVersion: v1
+data:
+  grafana-datasource-cm.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      orgId: 1
+      url: http://prometheus-service.prometheus.svc.cluster.local:80 # Replace with your Prometheus server URL
+      isDefault: true
+      jsonData:
+        timeInterval: "5s"
+        prometheusVersion: "3.10.0" # Specify your Prometheus version
+      # Optional: For basic authentication
+      # basicAuth: false
+      # basicAuthUser: ""
+      # secureJsonData:
+      #   basicAuthPassword: ""
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-cm
+  namespace: prometheus

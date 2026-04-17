@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana@sha256:83749231c3835e390a3144e5e940203e42b9589761f20ef3169c716e734ad505
+          volumeMounts:
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
+            - name: grafana-datasource-cm
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: grafana-provider-cm
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: podinfo-dashboard-cm
+              mountPath: /var/lib/grafana/dashboards
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin123" # Hardcoded for lab environments only!
+            - name: GF_METRICS_ENABLED
+              value: "true"
+      
+      volumes:
+        - name: grafana-storage # For persistent storage even if pod dies
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+
+        - name: grafana-datasource-cm # For provisioning datasource config
+          configMap:
+            name: grafana-datasource-cm
+
+        - name: grafana-provider-cm # For provisioning dashboard provider config
+          configMap:
+            name: grafana-provider-cm
+
+        - name: podinfo-dashboard-cm # For provisioning dashboard config
+          configMap:
+            name: podinfo-dashboard-cm

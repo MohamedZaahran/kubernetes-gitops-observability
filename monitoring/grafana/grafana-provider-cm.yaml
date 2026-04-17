@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  grafana-provider.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'grafana-dashboards-provider'
+      # A uniquely identifiable name for the provider
+      orgId: 1
+      # The organization id. Defaults to 1
+      folder: ''
+      # The folder where to place the dashboards
+      # Use an empty string '' to place dashboards in the default General folder
+      type: file
+      # The provider type. Can be 'file' or 'imported'
+      disableDeletion: false
+      # If true, Grafana will not delete dashboards that are removed from the filesystem
+      updateIntervalSeconds: 30
+      # How often Grafana will scan the directory for changes
+      options:
+        path: /var/lib/grafana/dashboards
+        # Default path for Linux
+kind: ConfigMap
+metadata:
+  name: grafana-provider-cm
+  namespace: prometheus

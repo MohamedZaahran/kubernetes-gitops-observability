@@ -41,3 +41,7 @@ data:
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
             target_label: pod
+            
+      - job_name: 'node-exporter'
+        static_configs:
+          - targets: ['node-exporter-service.prometheus.svc.cluster.local:9100']

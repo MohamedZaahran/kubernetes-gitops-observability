@@ -115,31 +115,31 @@ data:
               summary: "kube-state-metrics targets missing"
               description: "No kube-state-metrics targets are being scraped by Prometheus for more than 1 minute."
         
-        - name: node-health
-          rules:
-            - alert: HighCPUUsage
-              expr: 100 * (1 - avg by (instance,node) (rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[2m]))) > 80
-              for: 2m
-              labels:
-                severity: warning
-              annotations:
-                summary: "High CPU usage on {{ $labels.node }}"
-                description: High CPU usage detected on node {{ $labels.node }}
+      - name: node-health
+        rules:
+          - alert: HighCPUUsage
+            expr: 100 * (1 - avg by (instance,node) (rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[2m]))) > 80
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage on {{ $labels.node }}"
+              description: High CPU usage detected on node {{ $labels.node }}
 
-            - alert: LowMemoryAvailable
-              expr: 100 * (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}) < 10
-              for: 2m
-              labels:
-                severity: warning
-              annotations:
-                summary: "Low memory available on {{ $labels.node }}"
-                description: Low memory available on node {{ $labels.node }}
+          - alert: LowMemoryAvailable
+            expr: 100 * (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}) < 10
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Low memory available on {{ $labels.node }}"
+              description: Low memory available on node {{ $labels.node }}
 
-            - alert: HighDiskUsage
-              expr: 100 * (1 - (node_filesystem_avail_bytes{job="node-exporter",mountpoint="/var",fstype="ext4"} / node_filesystem_size_bytes{job="node-exporter",mountpoint="/var",fstype="ext4"})) > 80
-              for: 1m
-              labels:
-                severity: warning
-              annotations:
-                summary: "High disk usage on {{ $labels.node }}"
-                description: High disk usage detected on node {{ $labels.node }}
+          - alert: HighDiskUsage
+            expr: 100 * (1 - (node_filesystem_avail_bytes{job="node-exporter",mountpoint="/var",fstype="ext4"} / node_filesystem_size_bytes{job="node-exporter",mountpoint="/var",fstype="ext4"})) > 80
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High disk usage on {{ $labels.node }}"
+              description: High disk usage detected on node {{ $labels.node }}

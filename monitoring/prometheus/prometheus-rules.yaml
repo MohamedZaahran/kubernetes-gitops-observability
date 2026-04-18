@@ -127,7 +127,7 @@ data:
               description: High CPU usage detected on node {{ $labels.node }}
 
           - alert: LowMemoryAvailable
-            expr: 100 * (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}) < 10
+            expr: 100 * (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}) < 20
             for: 2m
             labels:
               severity: warning

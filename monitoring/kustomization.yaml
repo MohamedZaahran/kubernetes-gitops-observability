@@ -6,3 +6,4 @@ resources:
   - grafana/
   - kube-state-metrics/
   - alertmanager/
+  - node-exporter/

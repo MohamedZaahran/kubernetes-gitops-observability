@@ -125,7 +125,7 @@ data:
               description: "Prometheus cannot scrape Node Exporter on node {{ $labels.node }} for more than 1 minute."
 
           - alert: NodeExporterMissingTargets
-            expr: absent(up{job="node-exporter"})
+            expr: kube_daemonset_status_number_unavailable{exported_namespace="prometheus", daemonset="node-exporter"} > 0
             for: 1m
             labels:
               severity: critical
@@ -135,7 +135,7 @@ data:
 
         - name: node-health
           rules:
-            - alert: HighCPUUsage
+          - alert: HighCPUUsage
             expr: 100 * (1 - avg by (instance,node) (rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[2m]))) > 80
             for: 2m
             labels:

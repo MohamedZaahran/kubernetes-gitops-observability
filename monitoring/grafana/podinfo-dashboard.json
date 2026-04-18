@@ -110,7 +110,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total[1m])) by (pod)",
+          "expr": "sum(rate(http_requests_total[5m])) by (pod)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -386,7 +386,7 @@
       "options": {
         "legend": {
           "calcs": [],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -401,7 +401,7 @@
         {
           "editorMode": "code",
           "expr": "kube_pod_container_status_restarts_total{exported_namespace=\"podinfo\", container=\"podinfo\"}",
-          "legendFormat": "__auto",
+          "legendFormat": "{{exported_pod}}",
           "range": true,
           "refId": "A"
         }
@@ -419,7 +419,23 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -429,7 +445,11 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
               }
             ]
           }
@@ -464,7 +484,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "max(up{job=\"kubernetes-pods\", namespace=\"prometheus\", pod=~\"grafana-.*\"})",
+          "expr": "max(up{job=\"kubernetes-pods\", namespace=\"prometheus\", pod=~\"grafana-.*\"}) OR on() vector(0)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -483,7 +503,23 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -493,7 +529,11 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
               }
             ]
           }
@@ -528,7 +568,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "max(up{job=\"kubernetes-pods\", namespace=\"prometheus\", pod=~\"alertmanager-.*\"})",
+          "expr": "max(up{job=\"kubernetes-pods\", namespace=\"prometheus\", pod=~\"alertmanager-.*\"}) OR on() vector(0)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -547,7 +587,23 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -557,7 +613,11 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
               }
             ]
           }
@@ -592,7 +652,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "max(up{job=\"kubernetes-pods\", namespace=\"prometheus\", pod=~\"kube-state-metrics-.*\"})",
+          "expr": "max(up{job=\"kubernetes-pods\", namespace=\"prometheus\", pod=~\"kube-state-metrics-.*\"}) OR on() vector(0)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -615,7 +675,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Podinfo Dashboard",
-  "uid": "adp5vmx",
-  "version": 9,
+  "uid": "",
+  "version": 6,
   "weekStart": ""
 }

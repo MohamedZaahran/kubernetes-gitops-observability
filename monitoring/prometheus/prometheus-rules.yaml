@@ -16,6 +16,7 @@ data:
             annotations:
               summary: "Podinfo scrape target is down"
               description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is down (instance {{ $labels.instance }}) for more than 1 minute."
+              runbook: "Check podinfo pods with kubectl get pods -n podinfo, inspect pod logs/events, and verify the metrics port and Prometheus scrape annotations."
           
           - alert: PodInfoRestarting
             expr: increase(kube_pod_container_status_restarts_total{exported_namespace="podinfo", container="podinfo"}[5m]) > 0
@@ -24,6 +25,7 @@ data:
             annotations:
               summary: "Podinfo container is restarting"
               description: "Pod {{ $labels.exported_pod }} in namespace {{ $labels.exported_namespace }} restarted in the last 5 minutes."
+              runbook: "Check kubectl describe pod and kubectl logs --previous for the pod, then inspect image, config, resource limits, and application errors."
           
           - alert: PodInfoMissingTargets
             expr: absent(up{job="kubernetes-pods", namespace="podinfo"})
@@ -33,6 +35,7 @@ data:
             annotations:
               summary: "Podinfo targets missing"
               description: "No podinfo targets are being scraped by Prometheus for more than 1 minute."
+              runbook: "Verify podinfo pods exist, confirm prometheus.io scrape annotations, and check Prometheus target discovery for the kubernetes-pods job."
 
           - alert: PodinfoReplicasMismatch
             expr: kube_deployment_spec_replicas{exported_namespace="podinfo", deployment="podinfo"} != kube_deployment_status_replicas_available{exported_namespace="podinfo", deployment="podinfo"}
@@ -42,6 +45,7 @@ data:
             annotations:
               summary: "Podinfo replicas mismatch"
               description: "Podinfo desired replicas do not match available replicas for more than 2 minutes."
+              runbook: "Check kubectl get deploy,rs,pods -n podinfo and describe the deployment to find scheduling, image pull, readiness, or rollout issues."
 
           - alert: PodinfoUnavailableReplicas
             expr: kube_deployment_status_replicas_unavailable{exported_namespace="podinfo", deployment="podinfo"} > 0
@@ -51,6 +55,7 @@ data:
             annotations:
               summary: "Podinfo has unavailable replicas"
               description: "Podinfo has unavailable replicas for more than 2 minutes."
+              runbook: "Describe the podinfo deployment and failing pods, check events, image status, readiness probes, resource pressure, and recent GitOps changes."
 
           - alert: PrometheusDown
             expr: kube_deployment_status_replicas_available{exported_namespace="prometheus", deployment="prometheus-server"} < 1
@@ -60,6 +65,7 @@ data:
             annotations:
               summary: "Prometheus is down"
               description: "Prometheus deployment has no available replicas for more than 1 minute."
+              runbook: "Check prometheus-server pods, deployment events, config/rules mount errors, PVC status, and Prometheus logs in the prometheus namespace."
 
           - alert: GrafanaTargetDown
             expr: up{job="kubernetes-pods", namespace="prometheus", pod=~"grafana-.*"} == 0
@@ -69,6 +75,7 @@ data:
             annotations:
               summary: "Grafana target is down"
               description: "Prometheus cannot scrape Grafana for more than 1 minute."
+              runbook: "Check Grafana pod and service status, verify the metrics endpoint is reachable, and inspect Grafana logs and scrape annotations."
 
           - alert: GrafanaMissingTargets
             expr: absent(up{job="kubernetes-pods", namespace="prometheus", pod=~"grafana-.*"})
@@ -78,6 +85,7 @@ data:
             annotations:
               summary: "Grafana targets missing"
               description: "No Grafana targets are being scraped by Prometheus for more than 1 minute."
+              runbook: "Verify Grafana pods exist, confirm scrape annotations and exposed port, and check Prometheus service discovery for the grafana target."
 
           - alert: AlertmanagerTargetDown
             expr: up{job="kubernetes-pods", namespace="prometheus", pod=~"alertmanager-.*"} == 0
@@ -87,6 +95,7 @@ data:
             annotations:
               summary: "Alertmanager target is down"
               description: "Prometheus cannot scrape Alertmanager for more than 1 minute."
+              runbook: "Check Alertmanager pod, service, config secret mount, logs, and whether the metrics endpoint is reachable from Prometheus."
 
           - alert: AlertmanagerMissingTargets
             expr: absent(up{job="kubernetes-pods", namespace="prometheus", pod=~"alertmanager-.*"})
@@ -96,6 +105,7 @@ data:
             annotations:
               summary: "Alertmanager targets missing"
               description: "No Alertmanager targets are being scraped by Prometheus for more than 1 minute."
+              runbook: "Verify Alertmanager pods exist, check scrape annotations and service ports, then inspect Prometheus target discovery."
 
           - alert: KubeStateMetricsTargetDown
             expr: up{job="kubernetes-pods", namespace="prometheus", pod=~"kube-state-metrics-.*"} == 0
@@ -105,6 +115,7 @@ data:
             annotations:
               summary: "kube-state-metrics target is down"
               description: "Prometheus cannot scrape kube-state-metrics for more than 1 minute."
+              runbook: "Check kube-state-metrics deployment, pod logs, service endpoints, RBAC resources, and the Prometheus target page."
 
           - alert: KubeStateMetricsMissingTargets
             expr: absent(up{job="kubernetes-pods", namespace="prometheus", pod=~"kube-state-metrics-.*"})
@@ -114,6 +125,7 @@ data:
             annotations:
               summary: "kube-state-metrics targets missing"
               description: "No kube-state-metrics targets are being scraped by Prometheus for more than 1 minute."
+              runbook: "Verify kube-state-metrics pods and service exist, confirm scrape annotations, and check whether Prometheus is discovering the target."
 
           - alert: NodeExporterTargetDown
             expr: up{job="node-exporter"} == 0
@@ -123,6 +135,7 @@ data:
             annotations:
               summary: "Node Exporter target is down"
               description: "Prometheus cannot scrape Node Exporter on node {{ $labels.node }} for more than 1 minute."
+              runbook: "Check node-exporter DaemonSet pods, service endpoints, pod logs, host permissions, and whether Prometheus can reach the node-exporter metrics port."
 
           - alert: NodeExporterMissingTargets
             expr: kube_daemonset_status_number_unavailable{exported_namespace="prometheus", daemonset="node-exporter"} > 0
@@ -132,6 +145,7 @@ data:
             annotations:
               summary: "Node Exporter targets missing"
               description: "No Node Exporter targets are being scraped by Prometheus for more than 1 minute."
+              runbook: "Check kubectl get daemonset node-exporter -n prometheus, describe unavailable pods, and verify node scheduling, tolerations, and service discovery."
 
       - name: node-health
         rules:
@@ -142,7 +156,8 @@ data:
               severity: warning
             annotations:
               summary: "High CPU usage on {{ $labels.node }}"
-              description: High CPU usage detected on node {{ $labels.node }}
+              description: "Node {{ $labels.node }} CPU usage is above 80% for more than 2 minutes."
+              runbook: "Check node and pod CPU usage, identify noisy workloads, inspect recent deployments, and scale or limit the consuming workload if needed."
 
           - alert: LowMemoryAvailable
             expr: 100 * (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}) < 20
@@ -151,7 +166,8 @@ data:
               severity: warning
             annotations:
               summary: "Low memory available on {{ $labels.node }}"
-              description: Low memory available on node {{ $labels.node }}
+              description: "Node {{ $labels.node }} has less than 20% memory available for more than 2 minutes."
+              runbook: "Check node and pod memory usage, inspect OOM events, review workload limits, and restart, scale, or reschedule memory-heavy workloads."
 
           - alert: HighDiskUsage
             expr: 100 * (1 - (node_filesystem_avail_bytes{job="node-exporter",mountpoint="/var",fstype="ext4"} / node_filesystem_size_bytes{job="node-exporter",mountpoint="/var",fstype="ext4"})) > 80
@@ -160,4 +176,5 @@ data:
               severity: warning
             annotations:
               summary: "High disk usage on {{ $labels.node }}"
-              description: High disk usage detected on node {{ $labels.node }}
+              description: "Node {{ $labels.node }} disk usage on /var is above 80%."
+              runbook: "Check disk usage with df -h and du, remove unused images/logs, clean old data, or expand storage."

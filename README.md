@@ -24,39 +24,11 @@ The project demonstrates GitOps-based deployment, monitoring, alerting, dashboar
 
 ## Architecture Summary
 
-```text
-GitHub Repository
-      |
-      v
-ArgoCD App-of-Apps
-      |
-      v
-Kubernetes / Minikube
-      |
-      |-- podinfo
-      |-- Prometheus
-      |-- Grafana
-      |-- Alertmanager
-      |-- kube-state-metrics
-      |-- node-exporter
-```
+![Architecture Summary](screenshots/architecture-summary.png)
 
 Monitoring flow:
 
-```text
-podinfo / Grafana / Alertmanager / kube-state-metrics / node-exporter
-        |
-        v
-Prometheus
-        |
-        |-- Grafana dashboards
-        |
-        v
-Alertmanager
-        |
-        v
-Gmail notifications
-```
+![Monitoring Flow](screenshots/monitoring-flow.png)
 
 ---
 

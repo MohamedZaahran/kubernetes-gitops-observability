@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
         - name: grafana-renderer
-          image: grafana/grafana-image-renderer:latest
+          image: grafana/grafana-image-renderer@sha256:6c432f1aed266ce56433becacd197cdab708f9089104d67664207b4fe0975055
           ports:
             - containerPort: 8081

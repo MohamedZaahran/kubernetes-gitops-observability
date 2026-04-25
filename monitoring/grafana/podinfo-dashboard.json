@@ -811,7 +811,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 6,
         "x": 0,
         "y": 14
@@ -895,7 +895,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 6,
         "x": 6,
         "y": 14
@@ -979,7 +979,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 6,
         "x": 12,
         "y": 14
@@ -1063,7 +1063,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 6,
         "x": 18,
         "y": 14
@@ -1114,6 +1114,6 @@
   "timezone": "browser",
   "title": "Podinfo Dashboard",
   "uid": "",
-  "version": 10,
+  "version": 5,
   "weekStart": ""
 }

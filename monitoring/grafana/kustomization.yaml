@@ -7,6 +7,9 @@ resources:
   - grafana-pvc.yaml
   - grafana-datasource-cm.yaml
   - grafana-provider-cm.yaml
+  - grafana-renderer-deployment.yaml
+  - grafana-renderer-service.yaml
+
 
 configMapGenerator:
   - name: podinfo-dashboard-cm

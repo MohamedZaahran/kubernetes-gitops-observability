@@ -36,6 +36,13 @@ spec:
               value: "admin123" # Hardcoded for lab environments only!
             - name: GF_METRICS_ENABLED
               value: "true"
+            - name: GF_RENDERING_SERVER_URL
+              value: "http://grafana-renderer-service:8081/render"
+            - name: GF_RENDERING_CALLBACK_URL
+              value: "http://grafana-service:3000/"
+            - name: GF_LOG_FILTERS
+              value: "rendering:debug"
+
       
       volumes:
         - name: grafana-storage # For persistent storage even if pod dies

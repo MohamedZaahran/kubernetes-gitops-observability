@@ -1,0 +1,4 @@
+alertmanager-secret.yaml
+alertmanager-secret.yml
+monitoring/alertmanager/alertmanager-secret.yaml
+monitoring/alertmanager/alertmanager-secret.yml

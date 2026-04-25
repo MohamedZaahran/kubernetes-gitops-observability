@@ -6,13 +6,14 @@ resources:
   - alertmanager-service.yaml
 
 # Optional Alertmanager Secret generator:
-# Uncomment only after replacing WRITE_YOUR_PASSWORD_HERE in alertmanager-secret.example.yaml.
+# Copy alertmanager-secret.example.yaml to alertmanager-secret.yaml, replace WRITE_YOUR_PASSWORD_HERE,
+# then uncomment this block only in a local/private overlay.
 # This creates secret/alertmanager-config-secret with key alertmanager.yml.
 # secretGenerator:
 #   - name: alertmanager-config-secret
 #     namespace: prometheus
 #     files:
-#       - alertmanager.yml=alertmanager-secret.example.yaml
+#       - alertmanager.yml=alertmanager-secret.yaml
 #
 # generatorOptions:
 #   disableNameSuffixHash: true

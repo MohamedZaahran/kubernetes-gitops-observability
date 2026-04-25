@@ -1,5 +1,7 @@
 # Kubernetes GitOps Observability
 
+![Kubernetes GitOps Observability](screenshots/social-preview.png)
+
 Production-style Kubernetes GitOps observability lab using **ArgoCD**, **Prometheus**, **Grafana**, **Alertmanager**, **kube-state-metrics**, and **node-exporter** on Kubernetes.
 
 The project demonstrates GitOps-based deployment, monitoring, alerting, dashboards, infrastructure metrics, and failure simulation using `podinfo` as the demo workload.

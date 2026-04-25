@@ -4,3 +4,15 @@ kind: Kustomization
 resources:
   - alertmanager-deployment.yaml
   - alertmanager-service.yaml
+
+# Optional Alertmanager Secret generator:
+# Uncomment only after replacing WRITE_YOUR_PASSWORD_HERE in alertmanager-secret.example.yaml.
+# This creates secret/alertmanager-config-secret with key alertmanager.yml.
+# secretGenerator:
+#   - name: alertmanager-config-secret
+#     namespace: prometheus
+#     files:
+#       - alertmanager.yml=alertmanager-secret.example.yaml
+#
+# generatorOptions:
+#   disableNameSuffixHash: true

@@ -4,6 +4,15 @@ Production-style Kubernetes GitOps observability lab using **ArgoCD**, **Prometh
 
 The project demonstrates GitOps-based deployment, monitoring, alerting, dashboards, infrastructure metrics, and failure simulation using `podinfo` as the demo workload.
 
+The core idea of this project is that after ArgoCD is installed, the **whole application and observability stack** can be deployed through GitOps with **_one command_**:
+
+```bash
+kubectl apply -f root-app.yaml -n argocd
+```
+
+This bootstraps the ArgoCD App-of-Apps, which then deploys and manages the podinfo application, Prometheus, Grafana, Alertmanager, kube-state-metrics, node-exporter, dashboards, alert rules, services, PVCs, and related Kubernetes resources from Git.
+
+
 ![Project Architecture](screenshots/project-architecture.png)
 
 ---
@@ -22,13 +31,31 @@ The project demonstrates GitOps-based deployment, monitoring, alerting, dashboar
 
 ---
 
+## Project Preview
+
+### Grafana Dashboard
+![Grafana Dashboard](screenshots/grafana-dashboard.png)
+### ArgoCD
+<img src="screenshots/argocd-app-of-apps.jpg" alt="ArgoCD App of Apps">
+  
+### Prometheus Alerts
+<img src="screenshots/prometheus-alerts.png" alt="Prometheus Alerts">
+
+### Alertmanager Alerts
+<img src="screenshots/alertmanager-alerts.png" alt="Alertmanager Alerts">
+
+### GMAIL Alerts
+<img src="screenshots/gmail-high-cpu-firing.jpg" width="48%" alt="Gmail High CPU Firing Alert" /> <img src="screenshots/gmail-high-cpu-resolved.jpg" width="48%" alt="Gmail High CPU Resolved Alert" />
+
+---
+
 ## Architecture Summary
 
-![Architecture Summary](screenshots/architecture-summary.png)
+<img src="screenshots/architecture-summary.png" width="650" height="500" alt="Architecture Summary">
 
-Monitoring flow:
+### Monitoring Flow
 
-![Monitoring Flow](screenshots/monitoring-flow.png)
+<img src="screenshots/monitoring-flow.png" width="650" height="500" alt="Monitoring Flow">
 
 ---
 
@@ -59,73 +86,122 @@ README.md
 ```
 
 - `argocd/` - ArgoCD App-of-Apps and child application manifests
-- `monitoring/` - Prometheus, Grafana, Alertmanager, kube-state-metrics, and node-exporter
+- `monitoring/` - Prometheus, Grafana, Alertmanager, kube-state-metrics, and node-exporter manifests
 - `podinfo/` - demo workload used for monitoring and failure testing
-- `screenshots/` - project screenshots and architecture image
+- `screenshots/` - project screenshots and architecture images
 - `failure-scenarios.md` - tested failures, symptoms, alerts, dashboard behavior, and recovery steps
 
 ---
 
 ## Prerequisites
 
-On Windows/WSL2:
+### Windows side
 
-- Docker Desktop with WSL2 backend enabled
-- VS Code with the WSL extension
-- WSL2 Ubuntu shell
+- Docker Desktop
+  - Enable: **Settings -> General -> Use the WSL 2 based engine**
+- VS Code
+  - Install the official **WSL** extension
+- WSL2 Ubuntu terminal
+
+### WSL / Ubuntu tools
+
+The setup below installs:
+
 - Minikube
 - kubectl
-- Git
-- Gmail App Password for Alertmanager email notifications
-
-Optional:
-
-- ArgoCD CLI
 - Helm
-- Codex or another coding assistant for editing/debugging
+- ArgoCD CLI
 
 ---
 
 ## Installation / Setup
 
-### 1. Clone the repository
+### 1. Install Minikube
+
+```bash
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+```
+
+Start the cluster using the Docker driver:
+
+```bash
+minikube start --driver=docker
+```
+
+If this fails, make sure Docker Desktop is running on Windows.
+
+---
+
+### 2. Install kubectl
+
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+Verify that kubectl can reach Minikube:
+
+```bash
+kubectl get nodes
+```
+
+---
+
+### 3. Install Helm
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+---
+
+### 4. Install ArgoCD CLI
+
+```bash
+curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+rm argocd-linux-amd64
+```
+
+---
+
+### 5. Deploy ArgoCD to Minikube
+
+Create only the ArgoCD namespace manually:
+
+```bash
+kubectl create namespace argocd
+```
+
+Install ArgoCD:
+
+```bash
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+Watch the ArgoCD pods:
+
+```bash
+kubectl get pods -n argocd -w
+```
+
+Wait until all ArgoCD pods are `Running`.
+
+---
+
+### 6. Clone the repository
 
 ```bash
 git clone https://github.com/MohamedZaahran/kubernetes-gitops-observability.git
 cd kubernetes-gitops-observability
 ```
 
-### 2. Start Minikube
+---
 
-```bash
-minikube start --driver=docker
-```
-
-Verify:
-
-```bash
-kubectl get nodes
-```
-
-### 3. Install ArgoCD in the cluster
-
-```bash
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl get pods -n argocd -w
-```
-
-Wait until ArgoCD pods are `Running`.
-
-### 4. Create the Alertmanager Gmail Secret
+### 7. Prepare the Alertmanager Gmail Secret locally
 
 Alertmanager Gmail credentials are **not committed to Git**.
-
-Create the monitoring namespace:
-
-```bash
-kubectl create namespace prometheus --dry-run=client -o yaml | kubectl apply -f -
-```
 
 Create a local ignored secret file from the example:
 
@@ -141,7 +217,39 @@ auth_password: "WRITE_YOUR_PASSWORD_HERE"
 
 and replace it with your Gmail App Password.
 
-Create/update the Kubernetes Secret:
+Do not commit:
+
+```text
+monitoring/alertmanager/alertmanager-secret.yaml
+monitoring/alertmanager/alertmanager-secret.yml
+```
+
+---
+
+### 8. Bootstrap the ArgoCD App-of-Apps
+
+Apply the root application:
+
+```bash
+kubectl apply -f root-app.yaml -n argocd
+```
+
+ArgoCD will create the child applications and sync the full stack from Git.
+
+Do **not** manually create the `podinfo` or `prometheus` namespaces.  
+They are created automatically by ArgoCD through the project manifests and sync options.
+
+---
+
+### 9. Create the Alertmanager Secret after the namespace exists
+
+Wait until ArgoCD creates the `prometheus` namespace:
+
+```bash
+kubectl get namespace prometheus
+```
+
+Then create/update the Kubernetes Secret:
 
 ```bash
 kubectl create secret generic alertmanager-config-secret -n prometheus --from-file=alertmanager.yml=monitoring/alertmanager/alertmanager-secret.yaml --dry-run=client -o yaml | kubectl apply -f -
@@ -159,22 +267,15 @@ with key:
 alertmanager.yml
 ```
 
-Do not commit:
-
-```text
-monitoring/alertmanager/alertmanager-secret.yaml
-monitoring/alertmanager/alertmanager-secret.yml
-```
-
-### 5. Bootstrap the ArgoCD App-of-Apps
+If Alertmanager was created before the Secret existed, restart it after creating the Secret:
 
 ```bash
-kubectl apply -f root-app.yaml -n argocd
+kubectl rollout restart deployment/alertmanager -n prometheus
 ```
 
-ArgoCD will create the child applications and sync the full stack from Git.
+---
 
-### 6. Verify deployment
+### 10. Verify deployment
 
 ```bash
 kubectl get applications -n argocd
@@ -212,6 +313,14 @@ Get initial password:
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 ```
 
+If port-forwarding does not work, use:
+
+```bash
+minikube service argocd-server -n argocd
+```
+
+---
+
 ### Prometheus
 
 ```bash
@@ -223,6 +332,8 @@ Open:
 ```text
 http://localhost:9090
 ```
+
+---
 
 ### Grafana
 
@@ -243,6 +354,8 @@ Username: admin
 Password: admin123
 ```
 
+---
+
 ### Alertmanager
 
 ```bash
@@ -255,6 +368,8 @@ Open:
 http://localhost:9093
 ```
 
+---
+
 ### Podinfo
 
 ```bash
@@ -266,6 +381,8 @@ Open:
 ```text
 http://localhost:9898
 ```
+
+---
 
 ### Node Exporter
 
@@ -371,8 +488,6 @@ The Grafana dashboard includes:
 - node memory usage
 - node disk usage trend and gauge
 
-![Grafana Dashboard](screenshots/grafana-dashboard.png)
-
 Dashboard style:
 
 - Stat panels for current health
@@ -385,28 +500,6 @@ Example UP query:
 ```promql
 max(up{job="kubernetes-pods", namespace="prometheus", pod=~"grafana-.*"}) OR on() vector(0)
 ```
-
----
-
-## Screenshots
-
-### ArgoCD App-of-Apps
-
-![ArgoCD App of Apps](screenshots/argocd-app-of-apps.jpg)
-
-### Prometheus Alerts
-
-![Prometheus Alerts](screenshots/prometheus-alerts.png)
-
-### Alertmanager
-
-![Alertmanager Alerts](screenshots/alertmanager-alerts.png)
-
-### Gmail Alert Notifications
-
-![Gmail High CPU Firing](screenshots/gmail-high-cpu-firing.jpg)
-
-![Gmail High CPU Resolved](screenshots/gmail-high-cpu-resolved.jpg)
 
 ---
 
@@ -459,38 +552,26 @@ Important behavior:
 
 Alertmanager Gmail credentials are not stored in Git.
 
-The repo includes:
+The repository includes only an example file:
 
 ```text
 monitoring/alertmanager/alertmanager-secret.example.yaml
 ```
 
-with placeholder:
+The real `alertmanager-secret.yaml` file is created locally, ignored by Git, and used to generate the Kubernetes Secret:
 
-```yaml
-auth_password: "WRITE_YOUR_PASSWORD_HERE"
-```
+`alertmanager-config-secret`
 
-The real local file is created manually:
+This keeps the public repository safe while still documenting how the Alertmanager email configuration should be created.
 
-```bash
-cp monitoring/alertmanager/alertmanager-secret.example.yaml monitoring/alertmanager/alertmanager-secret.yaml
-```
-
-Then applied as a Kubernetes Secret:
-
-```bash
-kubectl create secret generic alertmanager-config-secret -n prometheus --from-file=alertmanager.yml=monitoring/alertmanager/alertmanager-secret.yaml --dry-run=client -o yaml | kubectl apply -f -
-```
-
-For production-grade GitOps secret management, better options include:
+For **production-grade GitOps secret management**, better options include:
 
 - Sealed Secrets
 - SOPS
 - External Secrets Operator
 - Vault
 
----
+This avoids repeating the full `cp` and `kubectl create secret` commands twice, while still making the security design clear.
 
 ## Start / Stop
 

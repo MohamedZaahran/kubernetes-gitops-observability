@@ -1,22 +1,28 @@
 # Kubernetes GitOps Observability
 
-Production-style Kubernetes GitOps observability lab built with ArgoCD, Prometheus, Grafana, Alertmanager, kube-state-metrics, and node-exporter.
+Production-style Kubernetes GitOps observability lab using **ArgoCD**, **Prometheus**, **Grafana**, **Alertmanager**, **kube-state-metrics**, and **node-exporter** on Kubernetes.
 
-The project demonstrates GitOps-based deployment, metrics collection, dashboard provisioning, alerting, email notifications, infrastructure monitoring, and failure simulation on Kubernetes.
+The project demonstrates GitOps-based deployment, monitoring, alerting, dashboards, infrastructure metrics, and failure simulation using `podinfo` as the demo workload.
 
----
-
-## Overview
-
-This project deploys a complete observability stack on Kubernetes using GitOps principles.
-
-ArgoCD continuously reconciles the desired state from Git, while Prometheus collects metrics from the application, Kubernetes objects, monitoring stack components, and node-level exporters. Grafana visualizes the system state, and Alertmanager routes Prometheus alerts to Gmail.
-
-The `podinfo` application is used as the demo workload for testing application monitoring, deployment health, alerting, and failure scenarios.
+![Project Architecture](screenshots/project-architecture.png)
 
 ---
 
-## Architecture
+## What This Project Shows
+
+- GitOps deployment with ArgoCD App-of-Apps
+- Prometheus metrics scraping and alert rules
+- Grafana dashboard provisioning
+- Alertmanager Gmail notifications
+- kube-state-metrics for Kubernetes object-state metrics
+- node-exporter for node CPU, memory, and disk metrics
+- PVC-backed persistence for Prometheus and Grafana
+- Failure scenarios tested and documented
+- Secrets kept out of public Git
+
+---
+
+## Architecture Summary
 
 ```text
 GitHub Repository
@@ -25,7 +31,7 @@ GitHub Repository
 ArgoCD App-of-Apps
       |
       v
-Kubernetes Cluster
+Kubernetes / Minikube
       |
       |-- podinfo
       |-- Prometheus
@@ -38,7 +44,7 @@ Kubernetes Cluster
 Monitoring flow:
 
 ```text
-podinfo / kube-state-metrics / node-exporter / Grafana / Alertmanager
+podinfo / Grafana / Alertmanager / kube-state-metrics / node-exporter
         |
         v
 Prometheus
@@ -52,41 +58,20 @@ Alertmanager
 Gmail notifications
 ```
 
-![ArgoCD App of Apps](screenshots/argocd-app-of-apps.jpg)
-
 ---
 
 ## Tech Stack
 
-- Kubernetes
-- Minikube
-- ArgoCD
-- Kustomize
-- Prometheus
-- Grafana
-- Alertmanager
-- kube-state-metrics
-- node-exporter
-- Gmail SMTP
-- GitHub
-
----
-
-## Features
-
-- GitOps deployment using ArgoCD App-of-Apps
-- ArgoCD automated sync, prune, and self-heal
-- Prometheus annotation-based pod scraping
-- Prometheus rule files managed through Git
-- Grafana datasource and dashboard provisioning
-- Alertmanager Gmail notifications
-- Alert grouping, repeat intervals, severity-based routing, and resolved notifications
-- kube-state-metrics for Kubernetes object-state metrics
-- node-exporter for node CPU, memory, and disk metrics
-- PVC-backed persistence for Prometheus and Grafana
-- App-level, monitoring-stack, and node-level alerts
-- Failure scenarios tested and documented
-- Secret values kept out of public Git
+| Layer | Tools |
+|---|---|
+| Cluster | Kubernetes, Minikube |
+| GitOps | ArgoCD, Kustomize, GitHub |
+| Metrics | Prometheus |
+| Dashboards | Grafana |
+| Alerts | Alertmanager, Gmail SMTP |
+| Kubernetes State | kube-state-metrics |
+| Node Metrics | node-exporter |
+| Demo App | podinfo |
 
 ---
 
@@ -96,39 +81,36 @@ Gmail notifications
 argocd/
 monitoring/
 podinfo/
+screenshots/
 failure-scenarios.md
 README.md
 ```
 
-### Main directories
-
-- `argocd/`  
-  ArgoCD application manifests and App-of-Apps configuration.
-
-- `monitoring/`  
-  Prometheus, Grafana, Alertmanager, kube-state-metrics, and node-exporter manifests.
-
-- `podinfo/`  
-  Demo application manifests used for monitoring and failure testing.
-
-- `failure-scenarios.md`  
-  Documented failure scenarios, expected symptoms, alerts, dashboard behavior, and recovery steps.
+- `argocd/` - ArgoCD App-of-Apps and child application manifests
+- `monitoring/` - Prometheus, Grafana, Alertmanager, kube-state-metrics, and node-exporter
+- `podinfo/` - demo workload used for monitoring and failure testing
+- `screenshots/` - project screenshots and architecture image
+- `failure-scenarios.md` - tested failures, symptoms, alerts, dashboard behavior, and recovery steps
 
 ---
 
 ## Prerequisites
 
-- WSL2 or Linux shell
-- Docker Desktop or compatible container runtime
+On Windows/WSL2:
+
+- Docker Desktop with WSL2 backend enabled
+- VS Code with the WSL extension
+- WSL2 Ubuntu shell
 - Minikube
 - kubectl
 - Git
-- Gmail account with an App Password for email alerts
+- Gmail App Password for Alertmanager email notifications
 
 Optional:
+
 - ArgoCD CLI
-- VS Code
-- Codex or another coding assistant for editing and troubleshooting
+- Helm
+- Codex or another coding assistant for editing/debugging
 
 ---
 
@@ -144,77 +126,81 @@ cd kubernetes-gitops-observability
 ### 2. Start Minikube
 
 ```bash
-minikube start
+minikube start --driver=docker
 ```
 
-### 3. Install ArgoCD
+Verify:
+
+```bash
+kubectl get nodes
+```
+
+### 3. Install ArgoCD in the cluster
 
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl get pods -n argocd -w
 ```
 
-Wait until ArgoCD pods are running:
-
-```bash
-kubectl get pods -n argocd
-```
+Wait until ArgoCD pods are `Running`.
 
 ### 4. Create the Alertmanager Gmail Secret
 
-Alertmanager Gmail credentials are not committed to Git.
+Alertmanager Gmail credentials are **not committed to Git**.
 
-Create the monitoring namespace first:
+Create the monitoring namespace:
 
 ```bash
 kubectl create namespace prometheus --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-Keep `monitoring/alertmanager/alertmanager-secret.example.yaml` committed with placeholder values only.
-
-Create a local ignored secret file:
+Create a local ignored secret file from the example:
 
 ```bash
 cp monitoring/alertmanager/alertmanager-secret.example.yaml monitoring/alertmanager/alertmanager-secret.yaml
 ```
 
-Edit `monitoring/alertmanager/alertmanager-secret.yaml` and replace:
+Edit:
 
 ```yaml
 auth_password: "WRITE_YOUR_PASSWORD_HERE"
 ```
 
-with your Gmail App Password.
+and replace it with your Gmail App Password.
 
-Create or update the Kubernetes Secret:
+Create/update the Kubernetes Secret:
 
 ```bash
 kubectl create secret generic alertmanager-config-secret -n prometheus --from-file=alertmanager.yml=monitoring/alertmanager/alertmanager-secret.yaml --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-The Secret created is:
+The created Secret is:
 
 ```text
 alertmanager-config-secret
 ```
 
-with the key:
+with key:
 
 ```text
 alertmanager.yml
 ```
 
-Do not commit `alertmanager-secret.yaml` or `alertmanager-secret.yml`.
+Do not commit:
+
+```text
+monitoring/alertmanager/alertmanager-secret.yaml
+monitoring/alertmanager/alertmanager-secret.yml
+```
 
 ### 5. Bootstrap the ArgoCD App-of-Apps
-
-Apply the root ArgoCD application manifest:
 
 ```bash
 kubectl apply -f root-app.yaml -n argocd
 ```
 
-ArgoCD will then create the child applications and sync the monitoring stack and podinfo workload from Git.
+ArgoCD will create the child applications and sync the full stack from Git.
 
 ### 6. Verify deployment
 
@@ -224,18 +210,47 @@ kubectl get pods -A
 kubectl get pvc -n prometheus
 ```
 
-Expected result:
+Expected:
+
 - ArgoCD apps are `Synced` and `Healthy`
-- Prometheus is running
-- Grafana is running
-- Alertmanager is running
-- kube-state-metrics is running
-- node-exporter is running
+- Prometheus, Grafana, Alertmanager, kube-state-metrics, and node-exporter are running
 - Prometheus and Grafana PVCs are `Bound`
 
 ---
 
 ## Accessing the Tools
+
+Run each port-forward in a separate terminal.
+
+### ArgoCD
+
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+Open:
+
+```text
+https://localhost:8080
+```
+
+Get initial password:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+```
+
+### Prometheus
+
+```bash
+kubectl port-forward svc/prometheus-service -n prometheus 9090:80
+```
+
+Open:
+
+```text
+http://localhost:9090
+```
 
 ### Grafana
 
@@ -256,18 +271,6 @@ Username: admin
 Password: admin123
 ```
 
-### Prometheus
-
-```bash
-kubectl port-forward svc/prometheus-service -n prometheus 9090:80
-```
-
-Open:
-
-```text
-http://localhost:9090
-```
-
 ### Alertmanager
 
 ```bash
@@ -280,68 +283,70 @@ Open:
 http://localhost:9093
 ```
 
-### ArgoCD
+### Podinfo
 
 ```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward svc/podinfo -n podinfo 9898:9898
 ```
 
 Open:
 
 ```text
-https://localhost:8080
+http://localhost:9898
 ```
 
-Get the initial ArgoCD admin password:
+### Node Exporter
 
 ```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+kubectl port-forward svc/node-exporter-service -n prometheus 9100:9100
+```
+
+Open:
+
+```text
+http://localhost:9100
 ```
 
 ---
 
-## Monitoring and Alerting
+## Monitoring and Alerts
 
-Prometheus loads alert rules from:
+Prometheus loads rules from:
 
 ```text
 /etc/prometheus/rules/alert.rules.yml
 ```
 
-The rules are grouped into:
+Rule groups:
 
 - `pod-health`
 - `node-health`
 
----
-
-## Alerts Implemented
-
-### Application alerts
+### Application Alerts
 
 | Alert | Purpose |
 |---|---|
-| `PodInfoScrapeDown` | Detects when podinfo exists but Prometheus cannot scrape it |
-| `PodInfoMissingTargets` | Detects when podinfo scrape targets disappear |
-| `PodInfoRestarting` | Detects podinfo container restarts |
-| `PodinfoReplicasMismatch` | Detects desired replicas not matching available replicas |
-| `PodinfoUnavailableReplicas` | Detects unavailable podinfo replicas |
+| `PodInfoScrapeDown` | podinfo exists but Prometheus cannot scrape it |
+| `PodInfoMissingTargets` | podinfo scrape targets disappeared |
+| `PodInfoRestarting` | podinfo container restarted |
+| `PodinfoReplicasMismatch` | desired replicas do not match available replicas |
+| `PodinfoUnavailableReplicas` | podinfo has unavailable replicas |
 
-### Monitoring stack alerts
+### Monitoring Stack Alerts
 
 | Alert | Purpose |
 |---|---|
-| `PrometheusDown` | Detects when Prometheus deployment has no available replicas |
-| `GrafanaTargetDown` | Detects Grafana scrape failure |
-| `GrafanaMissingTargets` | Detects missing Grafana scrape targets |
-| `AlertmanagerTargetDown` | Detects Alertmanager scrape failure |
-| `AlertmanagerMissingTargets` | Detects missing Alertmanager scrape targets |
-| `KubeStateMetricsTargetDown` | Detects kube-state-metrics scrape failure |
-| `KubeStateMetricsMissingTargets` | Detects missing kube-state-metrics scrape targets |
-| `NodeExporterTargetDown` | Detects node-exporter scrape failure |
-| `NodeExporterMissingTargets` | Detects unavailable node-exporter DaemonSet targets |
+| `PrometheusDown` | Prometheus deployment has no available replicas |
+| `GrafanaTargetDown` | Grafana scrape failed |
+| `GrafanaMissingTargets` | Grafana target disappeared |
+| `AlertmanagerTargetDown` | Alertmanager scrape failed |
+| `AlertmanagerMissingTargets` | Alertmanager target disappeared |
+| `KubeStateMetricsTargetDown` | kube-state-metrics scrape failed |
+| `KubeStateMetricsMissingTargets` | kube-state-metrics target disappeared |
+| `NodeExporterTargetDown` | node-exporter scrape failed |
+| `NodeExporterMissingTargets` | node-exporter target disappeared |
 
-### Node health alerts
+### Node Health Alerts
 
 | Alert | Threshold |
 |---|---|
@@ -349,23 +354,27 @@ The rules are grouped into:
 | `LowMemoryAvailable` | Available memory below 20% for more than 2 minutes |
 | `HighDiskUsage` | Disk usage on `/var` above 80% |
 
-### Important alerting concepts
+### Important Alerting Concepts
 
 ```text
 up == 0
 ```
 
-means the target exists, but Prometheus failed to scrape it.
+Target exists, but Prometheus failed to scrape it.
 
 ```text
 absent(up{...})
 ```
 
-means the target disappeared entirely.
+Target disappeared entirely.
 
-For kube-state-metrics workload metrics:
-- `namespace` / `pod` describe the exporter pod
-- `exported_namespace` / `exported_pod` describe the actual Kubernetes object
+For kube-state-metrics workload metrics, use:
+
+```text
+exported_namespace / exported_pod
+```
+
+for the object being described.
 
 Example:
 
@@ -375,59 +384,29 @@ kube_pod_container_status_restarts_total{exported_namespace="podinfo", container
 
 ---
 
-## Alertmanager
-
-Alertmanager is configured to:
-- receive alerts from Prometheus
-- group alerts by `alertname` and `severity`
-- send firing and resolved notifications
-- route warning and critical alerts to Gmail
-
-Example routing behavior:
-
-```text
-Prometheus alert -> Alertmanager -> Gmail notification
-```
-
-![Alertmanager Alerts](screenshots/alertmanager-alerts.png)
-
-### Gmail notifications
-
-![Gmail High CPU Firing](screenshots/gmail-high-cpu-firing.jpg)
-
-![Gmail High CPU Resolved](screenshots/gmail-high-cpu-resolved.jpg)
-
----
-
 ## Grafana Dashboard
 
-The Grafana dashboard visualizes application, monitoring-stack, and node-level health.
+The Grafana dashboard includes:
 
-Panels include:
-- Podinfo traffic rate
-- Desired replicas
-- Available replicas
-- Unavailable replicas
-- Container restarts
+- podinfo traffic rate
+- desired / available / unavailable replicas
+- container restarts
 - Grafana UP
 - Alertmanager UP
 - kube-state-metrics UP
 - node-exporter UP
 - node CPU usage
 - node memory usage
-- node disk usage trend
-- node disk usage gauge
+- node disk usage trend and gauge
 
 ![Grafana Dashboard](screenshots/grafana-dashboard.png)
 
-### Dashboard design notes
+Dashboard style:
 
-- Stat panels are used for current-value signals.
-- Time series panels are used for trends.
-- UP/DOWN panels map:
-  - `1` -> `UP`
-  - `0` -> `DOWN`
-- Dashboard default time range is intended for recent troubleshooting, usually around `now-1h`.
+- Stat panels for current health
+- Time series panels for trends
+- UP/DOWN panels map `1 -> UP` and `0 -> DOWN`
+- default troubleshooting range around `now-1h`
 
 Example UP query:
 
@@ -437,9 +416,25 @@ max(up{job="kubernetes-pods", namespace="prometheus", pod=~"grafana-.*"}) OR on(
 
 ---
 
-## Prometheus Alerts Page
+## Screenshots
+
+### ArgoCD App-of-Apps
+
+![ArgoCD App of Apps](screenshots/argocd-app-of-apps.jpg)
+
+### Prometheus Alerts
 
 ![Prometheus Alerts](screenshots/prometheus-alerts.png)
+
+### Alertmanager
+
+![Alertmanager Alerts](screenshots/alertmanager-alerts.png)
+
+### Gmail Alert Notifications
+
+![Gmail High CPU Firing](screenshots/gmail-high-cpu-firing.jpg)
+
+![Gmail High CPU Resolved](screenshots/gmail-high-cpu-resolved.jpg)
 
 ---
 
@@ -447,21 +442,22 @@ max(up{job="kubernetes-pods", namespace="prometheus", pod=~"grafana-.*"}) OR on(
 
 Detailed scenarios are documented in:
 
-[failure-scenarios.md](failure-scenarios.md)
+[./failure-scenarios.md](failure-scenarios.md)
 
-Examples tested:
-- ArgoCD self-healing after manual deployment image change
-- ArgoCD recovery after namespace deletion
-- podinfo scrape failure using wrong metrics port
-- missing podinfo scrape targets
-- podinfo container restart detection
-- bad image tag rollout failure
+Examples:
+
+- ArgoCD self-healing after manual drift
+- namespace deletion and recovery
+- bad image rollout
+- podinfo scrape failure
+- missing scrape targets
+- container restart detection
 - Grafana outage
 - Alertmanager outage
 - kube-state-metrics outage
 - Prometheus self-monitoring limitation
 - Grafana PVC reset
-- Alertmanager configuration failure
+- Alertmanager config failure
 - node-exporter scrape failure
 - high CPU usage
 - low memory availability
@@ -473,27 +469,17 @@ Examples tested:
 
 Prometheus and Grafana use PVC-backed storage.
 
-### Prometheus
-
-Prometheus data is stored under:
-
-```text
-/prometheus
-```
-
-### Grafana
-
-Grafana data is stored under:
-
-```text
-/var/lib/grafana
-```
+| Component | Mount Path | Purpose |
+|---|---|---|
+| Prometheus | `/prometheus` | metrics history |
+| Grafana | `/var/lib/grafana` | Grafana database, UI-created state |
 
 Important behavior:
+
 - deleting a pod does not delete persisted data
 - deleting the PVC resets stored state
 - provisioned dashboards come from Git/config files
-- UI-created Grafana dashboards are stored in Grafana's database on the PVC
+- UI-created Grafana dashboards are stored in Grafana's DB on the PVC
 
 ---
 
@@ -501,21 +487,32 @@ Important behavior:
 
 Alertmanager Gmail credentials are not stored in Git.
 
-### Alertmanager Local Secret
-1. Keep `monitoring/alertmanager/alertmanager-secret.example.yaml` committed with placeholder values only.
-2. Create a local ignored secret file:
+The repo includes:
+
+```text
+monitoring/alertmanager/alertmanager-secret.example.yaml
+```
+
+with placeholder:
+
+```yaml
+auth_password: "WRITE_YOUR_PASSWORD_HERE"
+```
+
+The real local file is created manually:
+
 ```bash
 cp monitoring/alertmanager/alertmanager-secret.example.yaml monitoring/alertmanager/alertmanager-secret.yaml
 ```
-3. Edit `monitoring/alertmanager/alertmanager-secret.yaml` and replace `WRITE_YOUR_PASSWORD_HERE` with the real Gmail app password.
-4. Create or update the Kubernetes Secret:
+
+Then applied as a Kubernetes Secret:
+
 ```bash
 kubectl create secret generic alertmanager-config-secret -n prometheus --from-file=alertmanager.yml=monitoring/alertmanager/alertmanager-secret.yaml --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-Do not commit `alertmanager-secret.yaml` or `alertmanager-secret.yml`.
-
 For production-grade GitOps secret management, better options include:
+
 - Sealed Secrets
 - SOPS
 - External Secrets Operator
@@ -523,12 +520,23 @@ For production-grade GitOps secret management, better options include:
 
 ---
 
-## Security Notes
+## Start / Stop
 
-- Do not commit real Gmail App Passwords to Git.
-- Use Gmail App Passwords instead of the normal account password.
-- Rotate credentials immediately if they are exposed.
-- Kubernetes Secrets are acceptable for this lab, but they are not a complete production secret-management solution on their own.
+### Stop
+
+```bash
+minikube stop
+wsl --shutdown
+```
+
+### Start
+
+```bash
+minikube start --driver=docker
+kubectl get pods -A
+```
+
+Then reopen the needed port-forwards from the **Accessing the Tools** section.
 
 ---
 
@@ -536,12 +544,12 @@ For production-grade GitOps secret management, better options include:
 
 - Git is the source of truth in GitOps.
 - ArgoCD restores live-cluster drift.
-- If Git contains a broken desired state, ArgoCD enforces the broken state.
-- `up == 0` and `absent(up{...})` represent different failure modes.
+- If Git contains a broken desired state, ArgoCD enforces it.
+- `up == 0` and `absent(up{...})` detect different failure modes.
 - kube-state-metrics shows Kubernetes object state.
 - Direct scraping shows runtime endpoint health.
-- Prometheus cannot fully monitor its own complete outage from inside itself.
-- Alertmanager failure limits external notification delivery.
+- Prometheus cannot fully monitor its own complete outage.
+- Alertmanager failure limits email delivery.
 - PVC-backed applications keep state after pod deletion.
 - Dashboards should explain alerts, not just display metrics.
 - Secrets must not be committed to public repositories.
@@ -550,32 +558,31 @@ For production-grade GitOps secret management, better options include:
 
 ## Future Improvements
 
-Possible future enhancements:
-- Sealed Secrets, SOPS, or External Secrets Operator for GitOps-safe secrets
-- Loki and Promtail for log aggregation
+- Sealed Secrets, SOPS, or External Secrets Operator
+- Loki and Promtail for logs
 - Blackbox Exporter for external HTTP probing
 - Ingress with TLS
 - Multi-environment Kustomize overlays
-- External Prometheus or uptime monitoring for Prometheus self-monitoring limitations
-- More recording rules for simplified alert and dashboard queries
+- External Prometheus or uptime monitor for Prometheus self-monitoring limitation
+- More recording rules for simplified PromQL
 
 ---
 
 ## Cleanup
 
-To remove the deployed workloads:
+Remove GitOps-managed workloads:
 
 ```bash
 kubectl delete -f root-app.yaml -n argocd
 ```
 
-To remove namespaces and all related resources:
+Remove all project namespaces:
 
 ```bash
 kubectl delete namespace prometheus podinfo argocd
 ```
 
-Warning: this deletes the monitoring stack, application, PVCs, and ArgoCD resources.
+Warning: this deletes workloads, monitoring data, PVCs, and ArgoCD resources.
 
 ---
 
